@@ -1,11 +1,15 @@
-// Load .env file from CWD early - Bun's --compile doesn't auto-load .env
-// This must be the VERY FIRST thing to run, before any imports
+// Load .env file early - Bun's --compile doesn't auto-load .env
+// This must be the VERY FIRST thing to run, before any imports.
+// Checks multiple locations: CWD first (project-specific), then config dir,
+// then the install directory (where the binary lives).
 (function loadEnv() {
   try {
     const fs = require('fs');
     const path = require('path');
-    const envPath = path.join(process.cwd(), '.env');
-    if (fs.existsSync(envPath)) {
+    const os = require('os');
+
+    function loadEnvFile(envPath: string) {
+      if (!fs.existsSync(envPath)) return;
       const content = fs.readFileSync(envPath, 'utf-8');
       for (const line of content.split('\n')) {
         const trimmed = line.trim();
@@ -19,6 +23,22 @@
         }
       }
     }
+
+    // 1. CWD (highest priority - project-specific)
+    loadEnvFile(path.join(process.cwd(), '.env'));
+
+    // 2. Config directory: ~/.loukanikode/.env
+    const configDir = process.env.LOUKANIKODE_CONFIG_DIR || path.join(os.homedir(), '.loukanikode');
+    loadEnvFile(path.join(configDir, '.env'));
+
+    // 3. Install directory (where the binary lives) - resolve symlinks
+    try {
+      const execPath = process.argv[0];
+      if (execPath && fs.existsSync(execPath)) {
+        const realExecPath = fs.realpathSync(execPath);
+        loadEnvFile(path.join(path.dirname(realExecPath), '.env'));
+      }
+    } catch {}
   } catch {
     // ignore
   }
