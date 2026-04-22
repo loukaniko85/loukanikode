@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"createLlamaFetch\\|llama-fetch-adapter\" --include=*.ts --include=*.js .)"
+    ]
+  }
+}
